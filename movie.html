@@ -1,0 +1,248 @@
+<html>
+<head>
+    <title>DMovie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        let movieCount = 0;
+
+        function toggleForm() {
+            var form = document.getElementById("movieForm");
+            var button = document.getElementById("toggleButton");
+            if (form.style.display === "none") {
+                form.style.display = "block";
+                button.textContent = "Back to Home";
+            } else {
+                form.style.display = "none";
+                button.textContent = "Add Movie";
+            }
+        }
+
+        function addMovie() {
+            var movieName = document.getElementById("movieName").value;
+            var category = document.querySelector('input[name="category"]:checked').value;
+            var list = document.getElementById(category + "List");
+
+            if (movieName) {
+                movieCount++;
+                var listItem = document.createElement("li");
+                listItem.className = "flex justify-between items-center mb-2";
+                listItem.innerHTML = `<span class="font-bold">• ${movieName}</span>
+                                      <button onclick="deleteMovie(this)" class="text-red-500">Delete</button>`;
+                list.appendChild(listItem);
+                document.getElementById("movieForm").reset();
+                saveMovie(movieName, category);
+                updateMovieCount();
+            }
+        }
+
+        function deleteMovie(button) {
+            var listItem = button.parentElement;
+            var category = listItem.parentElement.id.replace("List", "");
+            var movieName = listItem.querySelector("span").textContent.split("• ")[1];
+            listItem.remove();
+            removeMovie(movieName, category);
+            movieCount--;
+            updateMovieCount();
+        }
+
+        function toggleList(category) {
+            var watchedList = document.getElementById("watchedList");
+            var watchLaterList = document.getElementById("watchLaterList");
+            var watchedButton = document.getElementById("watchedButton");
+            var watchLaterButton = document.getElementById("watchLaterButton");
+            var searchInput = document.getElementById("searchInput");
+            var downloadIconWatched = document.getElementById("downloadIconWatched");
+            var downloadIconWatchLater = document.getElementById("downloadIconWatchLater");
+
+            if (category === "watched") {
+                if (watchedList.style.display === "none") {
+                    watchedList.style.display = "block";
+                    watchLaterList.style.display = "none";
+                    watchedButton.textContent = "Back";
+                    watchLaterButton.style.display = "none";
+                    searchInput.style.display = "block";
+                    downloadIconWatched.style.display = "inline-block";
+                } else {
+                    watchedList.style.display = "none";
+                    watchLaterList.style.display = "none";
+                    watchedButton.textContent = "Watched";
+                    watchLaterButton.style.display = "inline-block";
+                    searchInput.style.display = "none";
+                    downloadIconWatched.style.display = "none";
+                }
+            } else if (category === "watchLater") {
+                if (watchLaterList.style.display === "none") {
+                    watchLaterList.style.display = "block";
+                    watchedList.style.display = "none";
+                    watchLaterButton.textContent = "Back";
+                    watchedButton.style.display = "none";
+                    searchInput.style.display = "block";
+                    downloadIconWatchLater.style.display = "inline-block";
+                } else {
+                    watchLaterList.style.display = "none";
+                    watchedList.style.display = "none";
+                    watchLaterButton.textContent = "Watch Later";
+                    watchedButton.style.display = "inline-block";
+                    searchInput.style.display = "none";
+                    downloadIconWatchLater.style.display = "none";
+                }
+            }
+        }
+
+        function saveMovie(movieName, category) {
+            var movies = JSON.parse(localStorage.getItem(category)) || [];
+            movies.push(movieName);
+            localStorage.setItem(category, JSON.stringify(movies));
+        }
+
+        function removeMovie(movieName, category) {
+            var movies = JSON.parse(localStorage.getItem(category)) || [];
+            movies = movies.filter(movie => movie !== movieName);
+            localStorage.setItem(category, JSON.stringify(movies));
+        }
+
+        function loadMovies() {
+            var watchedMovies = JSON.parse(localStorage.getItem("watched")) || [];
+            var watchLaterMovies = JSON.parse(localStorage.getItem("watchLater")) || [];
+
+            watchedMovies.forEach((movie) => {
+                var listItem = document.createElement("li");
+                listItem.className = "flex justify-between items-center mb-2";
+                listItem.innerHTML = `<span class="font-bold">• ${movie}</span>
+                                      <button onclick="deleteMovie(this)" class="text-red-500">Delete</button>`;
+                document.getElementById("watchedList").appendChild(listItem);
+            });
+
+            watchLaterMovies.forEach((movie) => {
+                var listItem = document.createElement("li");
+                listItem.className = "flex justify-between items-center mb-2";
+                listItem.innerHTML = `<span class="font-bold">• ${movie}</span>
+                                      <button onclick="deleteMovie(this)" class="text-red-500">Delete</button>`;
+                document.getElementById("watchLaterList").appendChild(listItem);
+            });
+
+            movieCount = watchedMovies.length + watchLaterMovies.length;
+            updateMovieCount();
+
+            document.getElementById("watchedList").style.display = "none";
+            document.getElementById("watchLaterList").style.display = "none";
+            document.getElementById("searchInput").style.display = "none";
+            document.getElementById("downloadIconWatched").style.display = "none";
+            document.getElementById("downloadIconWatchLater").style.display = "none";
+        }
+
+        function searchMovies() {
+            var input = document.getElementById("searchInput").value.toLowerCase();
+            var watchedList = document.getElementById("watchedList");
+            var watchLaterList = document.getElementById("watchLaterList");
+
+            var watchedItems = watchedList.getElementsByTagName("li");
+            var watchLaterItems = watchLaterList.getElementsByTagName("li");
+
+            for (var i = 0; i < watchedItems.length; i++) {
+                var item = watchedItems[i];
+                var text = item.textContent || item.innerText;
+                item.style.display = text.toLowerCase().indexOf(input) > -1 ? "" : "none";
+            }
+
+            for (var i = 0; i < watchLaterItems.length; i++) {
+                var item = watchLaterItems[i];
+                var text = item.textContent || item.innerText;
+                item.style.display = text.toLowerCase().indexOf(input) > -1 ? "" : "none";
+            }
+        }
+
+        function updateMovieCount() {
+            document.getElementById("movieCount").textContent = `Total Movies: ${movieCount}`;
+        }
+
+        function downloadPDF(category) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const movies = JSON.parse(localStorage.getItem(category)) || [];
+            let y = 20;
+
+            doc.setFontSize(20);
+            doc.text("Movie List", 105, 10, null, null, "center");
+
+            doc.setFontSize(12);
+            movies.forEach((movie, index) => {
+                doc.text(`${index + 1}. ${movie}`, 10, y);
+                y += 10;
+            });
+
+            // Add watermark
+            doc.setTextColor(150);
+            doc.setFontSize(50);
+            doc.text("PRITAM", 35, 150, { angle: 45 });
+
+            doc.save(`${category}_movies.pdf`);
+        }
+
+        window.onload = loadMovies;
+    </script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center h-screen">
+    <div class="bg-white p-8 rounded shadow-md w-104 relative">
+        <h1 class="text-2xl font-bold text-center mb-4">DMovie</h1>
+        <div id="movieCount" class="absolute top-4 right-4 text-sm font-bold">Total Movies: 0</div>
+        <button id="toggleButton" onclick="toggleForm()" class="bg-green-500 text-white py-2 px-4 rounded mb-6 w-full">Add Movie</button>
+        <form id="movieForm" style="display: none;">
+            <div class="mb-4">
+                <input type="text" id="movieName" placeholder="Movie Name" class="w-full p-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <p>Category:</p>
+                <div class="flex items-center">
+                    <input type="radio" id="watched" name="category" value="watched" class="mr-2">
+                    <label for="watched" class="mr-4">Watched</label>
+                    <input type="radio" id="watchLater" name="category" value="watchLater" class="mr-2">
+                    <label for="watchLater">Watch Later</label>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p>Type:</p>
+                <div class="flex items-center">
+                    <input type="radio" id="bollywood" name="type" class="mr-2">
+                    <label for="bollywood" class="mr-4">Bollywood</label>
+                    <input type="radio" id="hollywood" name="type" class="mr-2">
+                    <label for="hollywood">Hollywood</label>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p>Genre:</p>
+                <div class="flex items-center">
+                    <input type="radio" id="action" name="genre" class="mr-2">
+                    <label for="action" class="mr-4">Action</label>
+                    <input type="radio" id="comedy" name="genre" class="mr-2">
+                    <label for="comedy" class="mr-4">Comedy</label>
+                    <input type="radio" id="drama" name="genre" class="mr-2">
+                    <label for="drama" class="mr-4">Drama</label>
+                    <input type="radio" id="horror" name="genre" class="mr-2">
+                    <label for="horror">Horror</label>
+                </div>
+            </div>
+            <button type="button" onclick="addMovie()" class="bg-green-500 text-white py-2 px-4 rounded mb-6 w-full">Add</button>
+        </form>
+        <div class="bg-gray-200 p-4 rounded">
+            <p class="font-bold mb-2">List of movies name:</p>
+            <div class="flex flex-col">
+                <div class="flex justify-between items-center">
+                    <button id="watchedButton" onclick="toggleList('watched')" class="bg-blue-500 text-white py-2 px-4 rounded mb-2" style="display: inline-block;">Watched</button>
+                    <i id="downloadIconWatched" onclick="downloadPDF('watched')" class="fas fa-download text-blue-500 ml-2" style="display: none; cursor: pointer;"></i>
+                </div>
+                <div class="flex justify-between items-center">
+                    <button id="watchLaterButton" onclick="toggleList('watchLater')" class="bg-red-500 text-white py-2 px-4 rounded mb-2" style="display: inline-block;">Watch Later</button>
+                    <i id="downloadIconWatchLater" onclick="downloadPDF('watchLater')" class="fas fa-download text-red-500 ml-2" style="display: none; cursor: pointer;"></i>
+                </div>
+                <input type="text" id="searchInput" onkeyup="searchMovies()" placeholder="Search Movie" class="w-full p-2 border rounded mb-4" style="display: none;">
+                <ul id="watchedList" class="w-full" style="display: none;"></ul>
+                <ul id="watchLaterList" class="w-full" style="display: none;"></ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
